@@ -13,6 +13,7 @@ from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
 import discord_webhook
 from decouple import config
+import os
 
 
 opt = Options()
@@ -36,10 +37,12 @@ driver = webdriver.Chrome(PATH, options=opt)
 URL = "https://teams.microsoft.com"
 
 # MS TEAMS Credentials
-DEMO = config('DEMO', cast=bool)
-if DEMO:
-    CREDS = {'email': config('MS_TEAMS_EMAIL'),
-             'passwd': config('MS_TEAMS_PASSWORD')}
+# DEMO = config('DEMO', cast=bool)
+# if DEMO:
+#     CREDS = {'email': config('MS_TEAMS_EMAIL'),
+#              'passwd': config('MS_TEAMS_PASSWORD')}
+CREDS = {'email': os.environ.get(
+    'MS_EMAIL'), 'passwd': os.environ.get('MS_PASSWORD')}
 
 
 def login():
@@ -62,8 +65,17 @@ def login():
     driver.find_element_by_id("idSIButton9").click()  # Sign in button
     time.sleep(5)
 
-    driver.find_element_by_xpath("idSIButton9").click()  # remember login
+    driver.find_element_by_id("idSIButton9").click()  # remember login
     time.sleep(5)
+    person_dropdown = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "personDropdown")))
+    person_dropdown.click()
+    #time.sleep(5)
+    buttons = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[@class='ts-sym left-align-icon']")))
+    driver.find_elements_by_xpath("//button[@class='ts-sym left-align-icon']")[-1].click()
+    #buttons[-1].click()
+    #driver.find_element_by_id('personDropdown').click()
+    #print(driver.find_elements_by_xpath("//button[@class='ts-sym left-align-icon']"))
+    driver.find_element_by_css_selector('path.lsvgbg').click()
 
 
 def createDB():
@@ -72,7 +84,7 @@ def createDB():
 
     my_cursor.execute(
         "CREATE TABLE timetable (name TEXT, start_time TEXT, end_time TEXT, day TEXT)")
-    my_cursor.execute("DESCRIBE timetable")
+    #my_cursor.execute("DESCRIBE timetable")
     db.commit()
     db.close()
     print("Created database")
