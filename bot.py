@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.webdriver.remote.errorhandler import ErrorCode
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -12,7 +13,6 @@ import schedule
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
 import discord_webhook
-from decouple import config
 import os
 
 
@@ -37,12 +37,10 @@ driver = webdriver.Chrome(PATH, options=opt)
 URL = "https://teams.microsoft.com"
 
 # MS TEAMS Credentials
-# DEMO = config('DEMO', cast=bool)
-# if DEMO:
-#     CREDS = {'email': config('MS_TEAMS_EMAIL'),
-#              'passwd': config('MS_TEAMS_PASSWORD')}
-CREDS = {'email': os.environ.get(
-    'MS_EMAIL'), 'passwd': os.environ.get('MS_PASSWORD')}
+CREDS = {
+    'email': os.environ.get('MS_EMAIL'),
+    'passwd': os.environ.get('MS_PASSWORD')
+}
 
 
 def login():
@@ -66,16 +64,23 @@ def login():
     time.sleep(5)
 
     driver.find_element_by_id("idSIButton9").click()  # remember login
-    time.sleep(5)
-    person_dropdown = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "personDropdown")))
+    
+    # Changing view to list view from grid view
+    person_dropdown = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "personDropdown")))
     person_dropdown.click()
-    #time.sleep(5)
-    buttons = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[@class='ts-sym left-align-icon']")))
-    driver.find_elements_by_xpath("//button[@class='ts-sym left-align-icon']")[-1].click()
-    #buttons[-1].click()
-    #driver.find_element_by_id('personDropdown').click()
-    #print(driver.find_elements_by_xpath("//button[@class='ts-sym left-align-icon']"))
-    driver.find_element_by_css_selector('path.lsvgbg').click()
+
+    buttons = WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+        (By.XPATH, "//button[@class='ts-sym left-align-icon']")))
+    driver.find_elements_by_xpath(
+        "//button[@class='ts-sym left-align-icon']")[-1].click()
+
+    list_view = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.XPATH, "//li[@class='theme-item']")))
+    driver.find_elements_by_xpath("//li[@class='theme-item']")[-1].click()
+
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+        (By.XPATH, "//div[@class='close-container app-icons-fill-hover']"))).click()
 
 
 def createDB():
