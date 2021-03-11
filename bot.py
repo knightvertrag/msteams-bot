@@ -12,7 +12,6 @@ import sqlite3
 import schedule
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
-import discord_webhook
 import os
 
 
@@ -64,7 +63,7 @@ def login():
     time.sleep(5)
 
     driver.find_element_by_id("idSIButton9").click()  # remember login
-    
+
     # Changing view to list view from grid view
     person_dropdown = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, "personDropdown")))
@@ -89,7 +88,7 @@ def createDB():
 
     my_cursor.execute(
         "CREATE TABLE timetable (name TEXT, start_time TEXT, end_time TEXT, day TEXT)")
-    #my_cursor.execute("DESCRIBE timetable")
+
     db.commit()
     db.close()
     print("Created database")
@@ -197,8 +196,6 @@ def joinclass(class_name, start_time, end_time):
             # schedule.every(1).minutes.do(joinclass,class_name,start_time,end_time)
             k += 1
         print("Seems like there is no class today.")
-        discord_webhook.send_msg(
-            class_name=class_name, status="noclass", start_time=start_time, end_time=end_time)
 
     time.sleep(4)
     webcam = driver.find_element_by_xpath(
@@ -217,9 +214,6 @@ def joinclass(class_name, start_time, end_time):
         '//*[@id="page-content-wrapper"]/div[1]/div/calling-pre-join-screen/div/div/div[2]/div[1]/div[2]/div/div/section/div[1]/div/div/button')
     joinnowbtn.click()
 
-    discord_webhook.send_msg(
-        class_name=class_name, status="joined", start_time=start_time, end_time=end_time)
-
     # now schedule leaving class
     tmp = "%H:%M"
 
@@ -236,8 +230,6 @@ def joinclass(class_name, start_time, end_time):
 
     driver.find_element_by_xpath('//*[@id="hangup-button"]').click()
     print("Class left")
-    discord_webhook.send_msg(
-        class_name=class_name, status="left", start_time=start_time, end_time=end_time)
 
 
 def start_browser():
