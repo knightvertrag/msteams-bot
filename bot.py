@@ -1,27 +1,22 @@
 from selenium import webdriver
-from selenium.webdriver.remote.errorhandler import ErrorCode
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import time
-import re
 import os.path
-from os import path
 import sqlite3
 import schedule
 from datetime import datetime
-from selenium.webdriver.common.action_chains import ActionChains
 import os
+from db import add_timetable, view_timetable
 
 
 opt = Options()
-opt.add_argument("--disable-infobars")
-opt.add_argument("start-maximized")
 opt.add_argument("--disable-extensions")
 opt.add_argument("--start-maximized")
-# Pass the argument 1 to allow and 2 to block
 
+# Allowing access to mic, cam, location and notifications
 opt.add_experimental_option("prefs", {
     "profile.default_content_setting_values.media_stream_mic": 1,
     "profile.default_content_setting_values.media_stream_camera": 1,
@@ -69,97 +64,18 @@ def login():
         EC.presence_of_element_located((By.ID, "personDropdown")))
     person_dropdown.click()
 
-    buttons = WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located(
         (By.XPATH, "//button[@class='ts-sym left-align-icon']")))
     driver.find_elements_by_xpath(
         "//button[@class='ts-sym left-align-icon']")[-1].click()
 
-    list_view = WebDriverWait(driver, 20).until(
+    WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.XPATH, "//li[@class='theme-item']")))
-    driver.find_elements_by_xpath("//li[@class='theme-item']")[-1].click()
+    driver.find_element_by_xpath(
+        "//li[@aria-label='List layout button']").click()
 
     WebDriverWait(driver, 10).until(EC.presence_of_element_located(
         (By.XPATH, "//div[@class='close-container app-icons-fill-hover']"))).click()
-
-
-def createDB():
-    db = sqlite3.connect("timetable.db")
-    my_cursor = db.cursor()
-
-    my_cursor.execute(
-        "CREATE TABLE timetable (name TEXT, start_time TEXT, end_time TEXT, day TEXT)")
-
-    db.commit()
-    db.close()
-    print("Created database")
-
-
-def validate_input(regex, inp):
-    if not re.match(regex, inp):
-        return False
-    return True
-
-
-def validate_day(inp):
-    days = ["monday", "tuesday", "wednesday",
-            "thursday", "friday", "saturday", "sunday"]
-
-    if inp.lower() in days:
-        return True
-    else:
-        return False
-
-
-def add_timetable():
-    if(not(path.exists("timetable.db"))):
-        createDB()
-    op = int(input("1. Add class\n2. Done adding\nEnter option : "))
-    while(op == 1):
-        name = input("Enter class name : ")
-        start_time = input(
-            "Enter class start time in 24 hour format: (HH:MM) ")
-        while not(validate_input("\d\d:\d\d", start_time)):
-            print("Invalid input, try again")
-            start_time = input(
-                "Enter class start time in 24 hour format: (HH:MM) ")
-
-        end_time = input("Enter class end time in 24 hour format: (HH:MM) ")
-        while not(validate_input("\d\d:\d\d", end_time)):
-            print("Invalid input, try again")
-            end_time = input(
-                "Enter class end time in 24 hour format: (HH:MM) ")
-
-        day = input("Enter day (Monday/Tuesday/Wednesday..etc) : ")
-        while not(validate_day(day.strip())):
-            print("Invalid input, try again")
-            end_time = input("Enter day (Monday/Tuesday/Wednesday..etc) : ")
-
-        conn = sqlite3.connect('timetable.db')
-        c = conn.cursor()
-
-        # Insert a row of data
-        try:
-            c.execute("INSERT INTO timetable VALUES ('%s','%s','%s','%s')" %
-                      (name, start_time, end_time, day))
-        except Exception as e:
-            print(e)
-            c.execute(
-                "CREATE TABLE timetable (name TEXT, start_time TEXT, end_time TEXT, day TEXT)")
-
-        conn.commit()
-        conn.close()
-
-        print("Class added to database\n")
-
-        op = int(input("1. Add class\n2. Done adding\nEnter option : "))
-
-
-def view_timetable():
-    conn = sqlite3.connect('timetable.db')
-    c = conn.cursor()
-    for row in c.execute('SELECT * FROM timetable'):
-        print(row)
-    conn.close()
 
 
 def joinclass(class_name, start_time, end_time):
@@ -245,10 +161,12 @@ def start_browser():
         login()
 
 
+
+
 def sched():
-    conn = sqlite3.connect('timetable.db')
-    c = conn.cursor()
-    for row in c.execute('SELECT * FROM timetable'):
+    db = sqlite3.connect('timetable.db')
+    mycursor = db.cursor()
+    for row in mycursor.execute('SELECT * FROM timetable'):
         # schedule all classes
         name = row[0]
         start_time = row[1]
@@ -291,6 +209,8 @@ def sched():
         # is pending to run or not
         schedule.run_pending()
         time.sleep(1)
+
+
 
 
 if __name__ == "__main__":
