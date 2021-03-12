@@ -13,9 +13,6 @@ from db import add_timetable, view_timetable
 
 
 opt = Options()
-opt.add_argument("--disable-extensions")
-opt.add_argument("--start-maximized")
-
 # Allowing access to mic, cam, location and notifications
 opt.add_experimental_option("prefs", {
     "profile.default_content_setting_values.media_stream_mic": 1,
@@ -38,7 +35,11 @@ CREDS = {
 
 
 def login():
+    """Function to log in to your MS TEAMS account"""
     global driver  # referring to the global driver
+    driver.get(URL)
+    WebDriverWait(driver, 10000).until(
+        EC.visibility_of_element_located((By.TAG_NAME, 'body')))
 
     # login required
     print("logging into MS TEAMS")
@@ -60,12 +61,12 @@ def login():
     driver.find_element_by_id("idSIButton9").click()  # remember login
 
     # Changing view to list view from grid view
-    person_dropdown = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "personDropdown")))
-    person_dropdown.click()
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "personDropdown"))).click()
 
     WebDriverWait(driver, 10).until(EC.presence_of_element_located(
         (By.XPATH, "//button[@class='ts-sym left-align-icon']")))
+
     driver.find_elements_by_xpath(
         "//button[@class='ts-sym left-align-icon']")[-1].click()
 
@@ -77,34 +78,34 @@ def login():
     WebDriverWait(driver, 10).until(EC.presence_of_element_located(
         (By.XPATH, "//div[@class='close-container app-icons-fill-hover']"))).click()
 
+    print("Logged in successfully")
+
 
 def joinclass(class_name, start_time, end_time):
     global driver
 
-    try_time = int(start_time.split(":")[1]) + 15
+    # Keepting a buffer of 10 minutes for the class to start
+    try_time = int(start_time.split(":")[1]) + 10
     try_time = start_time.split(":")[0] + ":" + str(try_time)
 
-    time.sleep(5)
+    # time.sleep(5)
 
-    classes_available = driver.find_elements_by_class_name("name-channel-type")
+    available_classes = driver.find_elements_by_class_name("name-channel-type")
 
-    for i in classes_available:
+    for i in available_classes:
         if class_name.lower() in i.get_attribute('innerHTML').lower():
             print("JOINING CLASS ", class_name)
             i.click()
             break
 
-    time.sleep(4)
-
     try:
-        joinbtn = driver.find_element_by_class_name("ts-calling-join-button")
-        joinbtn.click()
-
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+            (By.CLASS_NAME, "ts-calling-join-button"))).click()
     except:
         # join button not found
         # refresh every minute until found
         k = 1
-        while(k <= 15):
+        while(k <= 10):
             print("Join button not found, trying again")
             time.sleep(60)
             driver.refresh()
@@ -148,22 +149,7 @@ def joinclass(class_name, start_time, end_time):
     print("Class left")
 
 
-def start_browser():
-    global driver
-    driver = webdriver.Chrome(PATH, options=opt)
-
-    driver.get(URL)
-
-    WebDriverWait(driver, 10000).until(
-        EC.visibility_of_element_located((By.TAG_NAME, 'body')))
-
-    if("login.microsoftonline.com" in driver.current_url):
-        login()
-
-
-
-
-def sched():
+def scheduler():
     db = sqlite3.connect('timetable.db')
     mycursor = db.cursor()
     for row in mycursor.execute('SELECT * FROM timetable'):
@@ -176,52 +162,50 @@ def sched():
         if day.lower() == "monday":
             schedule.every().monday.at(start_time).do(
                 joinclass, name, start_time, end_time)
-            print("Scheduled class '%s' on %s at %s" % (name, day, start_time))
+            print(f"Schedules class {name} on {day} at {start_time}")
+
         if day.lower() == "tuesday":
             schedule.every().tuesday.at(start_time).do(
                 joinclass, name, start_time, end_time)
-            print("Scheduled class '%s' on %s at %s" % (name, day, start_time))
+            print(f"Schedules class {name} on {day} at {start_time}")
+
         if day.lower() == "wednesday":
             schedule.every().wednesday.at(start_time).do(
                 joinclass, name, start_time, end_time)
-            print("Scheduled class '%s' on %s at %s" % (name, day, start_time))
+            print(f"Schedules class {name} on {day} at {start_time}")
+
         if day.lower() == "thursday":
             schedule.every().thursday.at(start_time).do(
                 joinclass, name, start_time, end_time)
-            print("Scheduled class '%s' on %s at %s" % (name, day, start_time))
+            print(f"Schedules class {name} on {day} at {start_time}")
+
         if day.lower() == "friday":
             schedule.every().friday.at(start_time).do(
                 joinclass, name, start_time, end_time)
-            print("Scheduled class '%s' on %s at %s" % (name, day, start_time))
+            print(f"Schedules class {name} on {day} at {start_time}")
+
         if day.lower() == "saturday":
             schedule.every().saturday.at(start_time).do(
                 joinclass, name, start_time, end_time)
-            print("Scheduled class '%s' on %s at %s" % (name, day, start_time))
-        if day.lower() == "sunday":
-            schedule.every().sunday.at(start_time).do(
-                joinclass, name, start_time, end_time)
-            print("Scheduled class '%s' on %s at %s" % (name, day, start_time))
+            print(f"Schedules class {name} on {day} at {start_time}")
 
-    # Start browser
-    start_browser()
     while True:
-        # Checks whether a scheduled task
-        # is pending to run or not
+        # Checks whether a scheduled task is pending to run or not
         schedule.run_pending()
         time.sleep(1)
 
 
-
-
 if __name__ == "__main__":
-    # print(environ.get('VARIABLE'))
-    # joinclass("Maths","15:13","15:15","sunday")
-    op = int(
+    choice = int(
         input(("1. Modify Timetable\n2. View Timetable\n3. Start Bot\nEnter option : ")))
 
-    if(op == 1):
+    if(choice == 1):
         add_timetable()
-    if(op == 2):
+    elif(choice == 2):
         view_timetable()
-    if(op == 3):
-        sched()
+    elif(choice == 3):
+        login()
+        scheduler()
+    else:
+        driver.quit()
+        exit()
