@@ -81,20 +81,15 @@ def login():
     print("Logged in successfully")
 
 
-def joinclass(class_name, start_time, end_time):
+def joinmeeting(meeting_name, start_time, end_time):
     global driver
 
-    # Keepting a buffer of 10 minutes for the class to start
-    try_time = int(start_time.split(":")[1]) + 10
-    try_time = start_time.split(":")[0] + ":" + str(try_time)
+    available_meetings = driver.find_elements_by_class_name(
+        "name-channel-type")
 
-    # time.sleep(5)
-
-    available_classes = driver.find_elements_by_class_name("name-channel-type")
-
-    for i in available_classes:
-        if class_name.lower() in i.get_attribute('innerHTML').lower():
-            print("JOINING CLASS ", class_name)
+    for i in available_meetings:
+        if meeting_name.lower() in i.get_attribute('innerHTML').lower():
+            print("JOINING MEETING ", meeting_name)
             i.click()
             break
 
@@ -109,10 +104,10 @@ def joinclass(class_name, start_time, end_time):
             print("Join button not found, trying again")
             time.sleep(60)
             driver.refresh()
-            joinclass(class_name, start_time, end_time)
-            # schedule.every(1).minutes.do(joinclass,class_name,start_time,end_time)
+            joinmeeting(meeting_name, start_time, end_time)
+
             k += 1
-        print("Seems like there is no class today.")
+        print("Seems like there is no meeting today.")
 
     time.sleep(4)
     webcam = driver.find_element_by_xpath(
@@ -131,13 +126,13 @@ def joinclass(class_name, start_time, end_time):
         '//*[@id="page-content-wrapper"]/div[1]/div/calling-pre-join-screen/div/div/div[2]/div[1]/div[2]/div/div/section/div[1]/div/div/button')
     joinnowbtn.click()
 
-    # now schedule leaving class
+    # now schedule leaving meeting
     tmp = "%H:%M"
 
-    class_running_time = datetime.strptime(
+    meet_running_time = datetime.strptime(
         end_time, tmp) - datetime.strptime(start_time, tmp)
 
-    time.sleep(class_running_time.seconds)
+    time.sleep(meet_running_time.seconds)
 
     driver.find_element_by_class_name("ts-calling-screen").click()
 
@@ -146,14 +141,14 @@ def joinclass(class_name, start_time, end_time):
     time.sleep(1)
 
     driver.find_element_by_xpath('//*[@id="hangup-button"]').click()
-    print("Class left")
+    print("Meeting left")
 
 
 def scheduler():
     db = sqlite3.connect('timetable.db')
     mycursor = db.cursor()
     for row in mycursor.execute('SELECT * FROM timetable'):
-        # schedule all classes
+        # schedule all meeting
         name = row[0]
         start_time = row[1]
         end_time = row[2]
@@ -161,33 +156,33 @@ def scheduler():
 
         if day.lower() == "monday":
             schedule.every().monday.at(start_time).do(
-                joinclass, name, start_time, end_time)
-            print(f"Schedules class {name} on {day} at {start_time}")
+                joinmeeting, name, start_time, end_time)
+            print(f"Scheduled meeting {name} on {day} at {start_time}")
 
         if day.lower() == "tuesday":
             schedule.every().tuesday.at(start_time).do(
-                joinclass, name, start_time, end_time)
-            print(f"Schedules class {name} on {day} at {start_time}")
+                joinmeeting, name, start_time, end_time)
+            print(f"Scheduled meeting {name} on {day} at {start_time}")
 
         if day.lower() == "wednesday":
             schedule.every().wednesday.at(start_time).do(
-                joinclass, name, start_time, end_time)
-            print(f"Schedules class {name} on {day} at {start_time}")
+                joinmeeting, name, start_time, end_time)
+            print(f"Scheduled meeting {name} on {day} at {start_time}")
 
         if day.lower() == "thursday":
             schedule.every().thursday.at(start_time).do(
-                joinclass, name, start_time, end_time)
-            print(f"Schedules class {name} on {day} at {start_time}")
+                joinmeeting, name, start_time, end_time)
+            print(f"Scheduled meeting {name} on {day} at {start_time}")
 
         if day.lower() == "friday":
             schedule.every().friday.at(start_time).do(
-                joinclass, name, start_time, end_time)
-            print(f"Schedules class {name} on {day} at {start_time}")
+                joinmeeting, name, start_time, end_time)
+            print(f"Scheduled meeting {name} on {day} at {start_time}")
 
         if day.lower() == "saturday":
             schedule.every().saturday.at(start_time).do(
-                joinclass, name, start_time, end_time)
-            print(f"Schedules class {name} on {day} at {start_time}")
+                joinmeeting, name, start_time, end_time)
+            print(f"Scheduled meeting {name} on {day} at {start_time}")
 
     while True:
         # Checks whether a scheduled task is pending to run or not
@@ -197,7 +192,7 @@ def scheduler():
 
 if __name__ == "__main__":
     choice = int(
-        input(("1. Modify Timetable\n2. View Timetable\n3. Start Bot\nEnter option : ")))
+        input(("1. Modify Timetable\n2. View Timetable\n3. Start MS-Teams Bot\nEnter option : ")))
 
     if(choice == 1):
         add_timetable()
